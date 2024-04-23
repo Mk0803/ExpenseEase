@@ -1,6 +1,8 @@
 package com.example.expenseease.ui.theme
 
 
+import android.content.ContentValues
+import android.util.Log
 import androidx.compose.animation.animateColor
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.infiniteRepeatable
@@ -34,6 +36,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ShapeDefaults
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -57,11 +60,46 @@ import androidx.navigation.NavController
 import androidx.room.TypeConverter
 import com.example.expenseease.data.Screen
 import com.example.expenseease.data.Transaction
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import java.util.Calendar
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TransactionScreen(navController: NavController, viewModel: MainViewModel) {
+    LaunchedEffect(Unit){
+        val auth = FirebaseAuth.getInstance()
+        val user = auth.currentUser
+        val db = FirebaseFirestore.getInstance()
+        if (user != null) {
+            db.collection("users").document(user.uid).collection("transactions")
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        Log.w("Transactions", "Error fetching transactions: $error")
+                        return@addSnapshotListener
+                    }
+                    if (snapshot != null) {
+                        val newTransaction = snapshot.mapNotNull { document ->
+                            try {
+                                Transaction(
+                                    uid = document.id, // Add ID if needed
+                                    title = document["title"] as? String ?: "",
+                                    amount = (document["amount"] as? Double ?: 0.0),
+                                    category = document["category"] as? String ?: "",
+                                    date = document["date"] as? String ?: "",
+                                    type = document["type"] as? String ?: "",
+                                    time = document["time"] as? String ?: ""
+                                )
+                            } catch (e: Exception) {
+                                Log.e(ContentValues.TAG, "Error converting document to Transaction", e)
+                                null
+                            }
+                        }
+                        viewModel.transactions.value = newTransaction
+                    }
+                }
+        }
+    }
     val transactions = viewModel.transactions
     val monthlyBudget = viewModel.monthlyBudget.collectAsState()
     val showSetBudgetDialog = remember { mutableStateOf(false) }
@@ -184,7 +222,8 @@ fun TransactionScreen(navController: NavController, viewModel: MainViewModel) {
                                     .fillMaxHeight()
                                     .clickable {
                                         viewModel.getMonthlyBudget()
-                                        showSetBudgetDialog.value = true }, backgroundColor = dropDownMenuGreen,
+                                        showSetBudgetDialog.value = true
+                                    }, backgroundColor = dropDownMenuGreen,
                                 elevation = 20.dp
                             ) {
 

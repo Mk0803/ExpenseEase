@@ -46,7 +46,7 @@ class MainViewModel : ViewModel() {
             FirebaseAuth.getInstance(),
             Injection.instance()
         )
-        getMonthlyBudget()
+
 
         viewModelScope.launch {
             val auth = FirebaseAuth.getInstance()

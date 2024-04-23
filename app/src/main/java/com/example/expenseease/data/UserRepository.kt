@@ -179,21 +179,32 @@ class UserRepository(
             Result.Error(e)
         }
 
-    suspend fun updateTransaction(transaction: Transaction): Result<Boolean> =
-        try {
-            val user = auth.currentUser
-            if (user != null) {
-                val transactionRef = firestore.collection("users").document(user.uid)
-                    .collection("transactions").document(transaction.uid)
-                transactionRef.set(transaction)
-                    .await()
-                Result.Success(true)
-            } else {
-                Result.Error(Exception("User not signed in"))
-            }
-        } catch (e: Exception) {
-            Result.Error(e)
+    suspend fun updateTransaction(transaction: Transaction): Result<Boolean> = try {
+        val user = auth.currentUser
+        if (user != null) {
+            val transactionRef = firestore.collection("users").document(user.uid)
+                .collection("transactions").document(transaction.uid)
+
+            // Create a map with the updated transaction data
+            val updatedTransactionData = mapOf(
+                "title" to transaction.title,
+                "amount" to transaction.amount,
+                "category" to transaction.category,
+                "date" to transaction.date,
+                "time" to transaction.time,
+                "type" to transaction.type
+            )
+
+            // Update the transaction document with the new data
+            transactionRef.update(updatedTransactionData)
+                .await()
+            Result.Success(true)
+        } else {
+            Result.Error(Exception("User not signed in"))
         }
+    } catch (e: Exception) {
+        Result.Error(e)
+    }
 
     suspend fun deleteTransactionById(transactionId: String): Result<Boolean> =
         try {

@@ -40,6 +40,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.ShapeDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -61,6 +62,9 @@ import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
 @Composable
 fun HomeView(viewModel: MainViewModel, navController: NavController) {
+    LaunchedEffect(Unit){
+        viewModel.getMonthlyBudget()
+    }
     dismissScreen()
     Box(
         modifier = Modifier
@@ -254,7 +258,6 @@ fun TopAppBar(viewModel: MainViewModel, onSearchQueryChanged: (MutableState<Stri
 
 val items = listOf(
     BottomNavigationItemData("User's Transactions", Icons.Rounded.Menu, "user_transactions"),
-    BottomNavigationItemData("Graphs", Icons.Rounded.DateRange, "graphs_route"),
     BottomNavigationItemData("User", Icons.Rounded.AccountCircle, "user_route")
 )
 

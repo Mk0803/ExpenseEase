@@ -64,8 +64,11 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.example.expenseease.R
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
+import kotlinx.coroutines.delay
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 import kotlin.coroutines.resume
@@ -92,8 +95,12 @@ fun AddEditDeleteScreen(
     val context = LocalContext.current
     var incomeState by remember { mutableStateOf(false) }
     val systemUiController = rememberSystemUiController()
+    var shouldShowDateFormatError by remember { mutableStateOf(false) }
+    var shouldShowTimeFormatError by remember { mutableStateOf(false) }
     systemUiController.setSystemBarsColor(GreenDark)
     systemUiController.setNavigationBarColor(Background)
+    var timeString by remember { mutableStateOf(time.toString()) }
+    var dateString by remember { mutableStateOf(date.toString()) }
 
     if (transactionId != null) {
         isLoading = true
@@ -103,7 +110,9 @@ fun AddEditDeleteScreen(
             amount = transaction?.amount.toString()
             category = transaction?.category ?: ""
             date = LocalDate.parse(transaction?.date)
+            dateString = date.toString()
             time = LocalTime.parse(transaction?.time)
+            timeString = time.toString()
             type = transaction?.type ?: ""
             if (type == "Income")
                 incomeState = true
@@ -253,7 +262,6 @@ fun AddEditDeleteScreen(
                         }
                     )
 
-
                     // Date TextField
                     TextField(
                         textStyle = TextStyle(
@@ -262,8 +270,15 @@ fun AddEditDeleteScreen(
                             color = Color.Black,
                             fontWeight = FontWeight.Bold
                         ),
-                        value = date.toString(),
-                        onValueChange = { date = LocalDate.parse(it) },
+                        value = dateString,
+                        onValueChange = {
+                            try {
+                                date = LocalDate.parse(it, DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+                            } catch (e: DateTimeParseException) {
+                                // If the date input is not in the correct format, set the flag to show the error message later
+                                shouldShowDateFormatError = true
+                            }
+                        },
                         label = {
                             Text(
                                 "Date YYYY-MM-DD",
@@ -303,8 +318,16 @@ fun AddEditDeleteScreen(
                             color = Color.Black,
                             fontWeight = FontWeight.Bold
                         ),
-                        value = time.toString(),
-                        onValueChange = { time = LocalTime.parse(it) },
+                        value = timeString,
+                        onValueChange = {
+                            timeString = it
+                            try {
+                                time = LocalTime.parse(it, DateTimeFormatter.ofPattern("HH:mm"))
+                            } catch (e: DateTimeParseException) {
+                                // If the time input is not in the correct format, set the flag to show the error message later
+                                shouldShowTimeFormatError = true
+                            }
+                        },
                         label = {
                             Text(
                                 "Time  HH:MM",
@@ -645,6 +668,18 @@ fun AddEditDeleteScreen(
 
                 }
 
+            }
+        }
+        LaunchedEffect(shouldShowDateFormatError, shouldShowTimeFormatError) {
+            if (shouldShowDateFormatError) {
+                Toast.makeText(context, "Invalid date format. Please use YYYY-MM-DD.", Toast.LENGTH_SHORT).show()
+                delay(5000) // 5-second delay
+                shouldShowDateFormatError = false
+            }
+            if (shouldShowTimeFormatError) {
+                Toast.makeText(context, "Invalid time format. Please use HH:MM.", Toast.LENGTH_SHORT).show()
+                delay(5000) // 5-second delay
+                shouldShowTimeFormatError = false
             }
         }
     }
